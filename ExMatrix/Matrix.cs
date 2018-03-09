@@ -130,20 +130,7 @@ namespace ExMatrix
             }
             return ret;
         }
-
-        /// <summary>
-        /// Возвращает массив соответствующий указанному столбцу матрицы. Отсчет столбцов идет с 0.
-        /// </summary>
-        public T[] GetColumn(int column)
-        {
-            if (column >= Size.Y) throw new IndexOutOfRangeException("Индекс столбца(поля) не принадлежит массиву.");
-            T[] ret = new T[Size.X];
-            for (int i = 0; i < Size.X; i++)
-                ret[i] = (T)matrix[i, column];
-
-            return ret;
-        }
-
+        
         /// <summary>
         /// Заполняет указанную строку матрицы значениями из массива. Если размер массива и размер строки не совпадают, то строка будет - либо заполнена не полностью, либо "лишние" значения массива будут проигнорированы.
         /// </summary>
