@@ -1,15 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Matrix
+﻿
+namespace ExMatrix
 {
     /// <summary>
     /// Класс служит для преобразования Matrix<int> в Matrix<double> и обратно.
     /// </summary>
-    public static class MatrixConverter
+    public static class ConvertM
     {
         /// <summary>
         /// Возвращает Matrix<int> преобразованную в Matrix<double>
@@ -18,7 +13,7 @@ namespace Matrix
         {
             Matrix<double> convertMatrix = new Matrix<double>(mA.Size.X, mA.Size.Y);
             double[] array = new double[mA.Size.X * mA.Size.Y];
-
+            
             int i = 0;
             foreach (var item in mA)
                 array[i++] = (double)item;
@@ -32,7 +27,7 @@ namespace Matrix
         /// </summary>
         public static Matrix<int> ToInt32(Matrix<double> mA)
         {
-            Matrix<int> matrix = new Matrix<int>(mA.Size.X, mA.Size.Y);
+            Matrix<int> matrix = new Matrix<int>(mA.Size.X);
             int[] arrayint = new int[mA.Size.X * mA.Size.Y];
 
             int i = 0;

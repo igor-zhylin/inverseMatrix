@@ -1,11 +1,11 @@
-﻿
-namespace Matrix
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-    using System.Collections;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Collections;
+using System.Linq;
 
+namespace ExMatrix
+{
     /// <summary>
     /// Класс матрицы.
     /// </summary>
@@ -14,7 +14,17 @@ namespace Matrix
         /// <summary>
         /// Размерность матрицы. X - количество строк, Y - количество столбцов(полей)
         /// </summary>
-        public MatrixSize Size { get; private set; }
+        public SizeMatrix Size { get; private set; }
+
+        /// <summary>
+        /// Тип матрицы (квадратная, прямоугольная)
+        /// </summary>
+        public TypeMatrix TypeM { get; private set; }
+
+        /// <summary>
+        /// Размер матрицы создаваемой по умолчанию. Стартовое значение (5, 5)
+        /// </summary>
+        public static SizeMatrix DefaultSize = new SizeMatrix(5, 5);
 
         /// <summary>
         /// Массив представляющий матрицу. Использование не рекомендуется!!! (используйте индексаторы)
@@ -25,11 +35,26 @@ namespace Matrix
         int curIndex = -1;
 
         /// <summary>
-        /// Конструктор класса.
+        /// Конструктор класса. Если размерность не указана будет создана матрица размерностью DefaultSize. Если указан только один параметр будет создана квадратная матрица размерностью равной указанному параметру.
         /// </summary>
         public Matrix(int? x = null, int? y = null)
         {
-            InitMatrix(new MatrixSize((int)x, (int)y));
+            if (x != null && y == null)
+            {
+                InitMatrix(new SizeMatrix((int)x, (int)x), TypeMatrix.Square);
+            }
+            else if (x == null && y != null)
+            {
+                InitMatrix(new SizeMatrix((int)y, (int)y), TypeMatrix.Square);
+            }
+            else if (x == null && y == null)
+            {
+                InitMatrix(DefaultSize, TypeMatrix.Rectangle);
+            }
+            else
+            {
+                InitMatrix(new SizeMatrix((int)x, (int)y), TypeMatrix.Rectangle);
+            }
         }
 
         public T this[int x, int y]
@@ -41,20 +66,42 @@ namespace Matrix
         /// <summary>
         /// Инициализация матрицы. Вызывается при создании экземпляра класса. Ручной вызов нужен для изменения размера матрицы и заполнения значениями по-умолчанию.
         /// </summary>
-        public void InitMatrix(MatrixSize size)
+        public void InitMatrix(SizeMatrix size, TypeMatrix type)
         {
+            TypeM = type;
             this.Size = size;
 
+            if (TypeM == TypeMatrix.RandomSquare || TypeM == TypeMatrix.Square)
+            {
+                if (Size.X != Size.Y)
+                {
+                    Size.Equalize();
+                }
+            }
+
+            if (Size.X == Size.Y && (TypeM == TypeMatrix.RandomRectangle || TypeM == TypeMatrix.Rectangle))
+            {
+                TypeM = TypeMatrix.Square;
+            }
             matrix = new T[size.X, size.Y];
 
             for (int i = 0; i < size.X; i++)
+            {
                 for (int t = 0; t < size.Y; t++)
+                {
                     matrix[i, t] = default(T);
+                }
+            }
+
         }
 
         public override string ToString()
         {
             StringBuilder ret = new StringBuilder();
+            if (this.Size == SizeMatrix.Zero)
+            {
+                return ret.ToString();
+            }
             for (int i = 0; i < Size.X; i++)
             {
                 for (int t = 0; t < Size.Y; t++)
@@ -72,10 +119,27 @@ namespace Matrix
         /// </summary>
         public T[] GetRow(int row)
         {
-            if (row >= Size.X) throw new IndexOutOfRangeException("Индекс строки не принадлежит массиву.");
+            if (row >= Size.X)
+            {
+                throw new IndexOutOfRangeException("Индекс строки не принадлежит массиву.");
+            }
             T[] ret = new T[Size.Y];
             for (int i = 0; i < Size.Y; i++)
+            {
                 ret[i] = (T)matrix[row, i];
+            }
+            return ret;
+        }
+
+        /// <summary>
+        /// Возвращает массив соответствующий указанному столбцу матрицы. Отсчет столбцов идет с 0.
+        /// </summary>
+        public T[] GetColumn(int column)
+        {
+            if (column >= Size.Y) throw new IndexOutOfRangeException("Индекс столбца(поля) не принадлежит массиву.");
+            T[] ret = new T[Size.X];
+            for (int i = 0; i < Size.X; i++)
+                ret[i] = (T)matrix[i, column];
 
             return ret;
         }
@@ -85,22 +149,11 @@ namespace Matrix
         /// </summary>
         public void SetRow(T[] rowValues, int row)
         {
-            if (row >= Size.X)
-                throw new IndexOutOfRangeException("Индекс строки не принадлежит массиву.");
+            if (row >= Size.X) throw new IndexOutOfRangeException("Индекс строки не принадлежит массиву.");
             for (int i = 0; i < (Size.Y > rowValues.Length ? rowValues.Length : Size.Y); i++)
                 matrix[row, i] = rowValues[i];
         }
-
-        /// <summary>
-        /// Заполняет указанный столбец значениями из массива. Если размеры столбца и массива не совпадают - столбец либо будет заполнен не полностью, либо "лишние" значения массива будут проигнорированы.
-        /// </summary>
-        public void SetColumn(T[] columnValues, int column)
-        {
-            if (column >= Size.Y)
-                throw new IndexOutOfRangeException("Индекс столбца(поля) не принадлежит массиву.");
-            for (int i = 0; i < (Size.X > columnValues.Length ? columnValues.Length : Size.X); i++)
-                matrix[i, column] = columnValues[i];
-        }
+        
 
         #region Enumerabling...
         void IDisposable.Dispose()
@@ -156,7 +209,8 @@ namespace Matrix
         public Matrix<T> Clone()
         {
             Matrix<T> ret = new Matrix<T>();
-            ret.Size = new MatrixSize(Size.X, Size.Y);
+            ret.Size = new SizeMatrix(Size.X, Size.Y);
+            ret.TypeM = TypeM;
             ret.matrix = (T[,])matrix.Clone();
             return ret;
         }
@@ -166,10 +220,9 @@ namespace Matrix
         /// </summary>
         public Matrix<T> Exclude(int row, int column)
         {
-            if (row > Size.X || column > Size.Y)
-                throw new IndexOutOfRangeException("Строка или столбец не принадлежат матрице.");
+            if (row > Size.X || column > Size.Y) throw new IndexOutOfRangeException("Строка или столбец не принадлежат матрице.");
             Matrix<T> ret = new Matrix<T>();
-            ret.InitMatrix(new MatrixSize(Size.X - 1, Size.Y - 1));
+            ret.InitMatrix(new SizeMatrix(Size.X - 1, Size.Y - 1), TypeM);
             int offsetX = 0;
             for (int i = 0; i < Size.X; i++)
             {
@@ -183,19 +236,8 @@ namespace Matrix
             }
             return ret;
         }
-
-        /// <summary>
-        /// Преобразует матрицу в одномерный массив.
-        /// </summary>
-        public T[] ToArray()
-        {
-            T[] ret = new T[Size.X * Size.Y];
-            int i = -1;
-            foreach (var item in this)
-                ret[++i] = item;
-            return ret;
-        }
-
+        
+        
         /// <summary>
         /// Заполняет матрицу из одномерного массива.
         /// </summary>
